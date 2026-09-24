@@ -8,6 +8,10 @@ cruza tudo por SQ_CANDIDATO e gera:
   - relatorio_validacao.md          (contagens por ano/cargo e checagens)
 
 Uso: python build.py
+
+Obs.: o CDN do TSE bloqueia IPs fora do Brasil. Se `raw/tse_sc_{ANO}.zip` existir
+(pacote só com os arquivos de SC, extraídos dos zips oficiais; veja extrair_sc.js),
+ele é usado no lugar dos zips completos.
 """
 from __future__ import annotations
 
@@ -98,9 +102,14 @@ def situacao(ds: str) -> str:
     return "outro"
 
 
+def subset_zip(ano: int) -> zipfile.ZipFile | None:
+    p = RAW / f"tse_sc_{ano}.zip"
+    return zipfile.ZipFile(p) if p.exists() else None
+
+
 def load_candidatos(ano: int) -> pd.DataFrame:
-    z = zipfile.ZipFile(download(tse_urls(ano)["candidatos"], RAW))
-    df = read_member(z, rf"_{UF}\.(csv|txt)$")
+    z = subset_zip(ano) or zipfile.ZipFile(download(tse_urls(ano)["candidatos"], RAW))
+    df = read_member(z, rf"consulta_cand_{ano}_{UF}\.csv$")
     df = df[(df["SG_UF"] == UF) & (df["CD_CARGO"].isin(["6", "7"])) & (df["NR_TURNO"] == "1")].copy()
     df["CD_CARGO"] = df["CD_CARGO"].astype(int)
     sit_col = pick(df, "DS_SIT_TOT_TURNO")
@@ -131,8 +140,8 @@ def load_candidatos(ano: int) -> pd.DataFrame:
 
 
 def load_votacao(ano: int) -> pd.DataFrame:
-    z = zipfile.ZipFile(download(tse_urls(ano)["votacao"], RAW))
-    df = read_member(z, rf"_{UF}\.(csv|txt)$")
+    z = subset_zip(ano) or zipfile.ZipFile(download(tse_urls(ano)["votacao"], RAW))
+    df = read_member(z, rf"votacao_candidato_munzona_{ano}_{UF}\.csv$")
     df = df[(df["SG_UF"] == UF) & (df["CD_CARGO"].isin(["6", "7"])) & (df["NR_TURNO"] == "1")].copy()
     df["votos"] = num(df["QT_VOTOS_NOMINAIS"])
     valid_col = pick_opt(df, "QT_VOTOS_NOMINAIS_VALIDOS")
@@ -186,6 +195,8 @@ def classifica_origem(fonte: str, origem: str) -> str:
 
 
 def contas_zip(ano: int) -> zipfile.ZipFile:
+    if (z := subset_zip(ano)) is not None:
+        return z
     if ano == 2014:
         for url in CONTAS_2014:
             if exists(url):
@@ -210,9 +221,9 @@ def load_contas(ano: int, sqs: set[str]) -> tuple[pd.DataFrame, dict]:
         classifica_origem(f, o) for f, o in zip(rec[fonte_c] if fonte_c else [""] * len(rec), rec[origem_c])
     ]
     if nat_c:
-        rec["estimavel"] = rec[nat_c].map(_norm).str.contains("ESTIMAV")
-    elif esp_c:
-        rec["estimavel"] = rec[esp_c].map(_norm).str.contains("ESTIMAV")
+        rec["estimavel"] = rec[nat_c].map(_norm).str.contains("ESTIMA")
+    elif esp_c:  # 2014: espécie "Estimado"
+        rec["estimavel"] = rec[esp_c].map(_norm).str.contains("ESTIMA")
     else:
         rec["estimavel"] = False
     info["receitas_linhas"] = len(rec)
@@ -232,6 +243,11 @@ def load_contas(ano: int, sqs: set[str]) -> tuple[pd.DataFrame, dict]:
     tipo_c = pick(dsp, "DS_ORIGEM_DESPESA", "TIPO_DESPESA")
     dsp = dsp.assign(sq=dsp[sq_d].str.strip(), valor=num(dsp[vr_d]))
     dsp["repasse"] = is_repasse(dsp[tipo_c])
+    # 2014: o arquivo de despesas inclui a "Baixa de Estimáveis" (bens/serviços recebidos como
+    # doação estimável). Em 2018 e 2022 o arquivo de despesas contratadas só tem gastos
+    # financeiros; para manter a comparação, esses lançamentos de 2014 ficam fora do gasto.
+    dsp["estimavel"] = dsp[tipo_c].map(_norm).str.startswith("BAIXA_DE_ESTIMAVEIS")
+    info["despesas_estimaveis_excluidas"] = round(float(dsp.loc[dsp["estimavel"], "valor"].sum()), 2)
     info["despesas_linhas"] = len(dsp)
     info["despesas_tipos_repasse"] = sorted(dsp.loc[dsp["repasse"], tipo_c].unique().tolist())
     info["despesas_por_tipo"] = dsp.groupby(tipo_c)["valor"].sum().sort_values(ascending=False).round(2).head(40).to_dict()
@@ -242,10 +258,11 @@ def load_contas(ano: int, sqs: set[str]) -> tuple[pd.DataFrame, dict]:
     orig = rec.pivot_table(index="sq", columns="origem", values="valor", aggfunc="sum")
     d = dsp.groupby("sq").agg(dt=("valor", "sum"))
     d["gt"] = dsp[dsp["repasse"]].groupby("sq")["valor"].sum()
+    d["ge"] = dsp[dsp["estimavel"]].groupby("sq")["valor"].sum()
     out = r.join(orig, how="outer").join(d, how="outer").fillna(0.0)
     out["re"] = out["re"].fillna(0.0)
     out["rf"] = out["rt"] - out["re"]
-    out["g"] = out["dt"] - out["gt"]
+    out["g"] = out["dt"] - out["gt"] - out["ge"]
     info["sq_contas_fora_da_base"] = int(len(set(out.index) - sqs))
     return out, info
 
@@ -263,8 +280,8 @@ def build_year(ano: int) -> tuple[pd.DataFrame, dict]:
     contas, info = load_contas(ano, set(cand["sq"]))
     df = cand.set_index("sq").join(vot, how="left").join(contas, how="left")
     df["votos"] = df["votos"].fillna(0).astype(int)
-    df["anulado"] = df["anulado"].fillna(False).astype(bool)
-    for c in ["rt", "re", "rf", "dt", "gt", "g", *ORIGENS]:
+    df["anulado"] = df["anulado"].eq(True)
+    for c in ["rt", "re", "rf", "dt", "gt", "ge", "g", *ORIGENS]:
         if c not in df.columns:
             df[c] = 0.0
         df[c] = df[c].fillna(0.0)
@@ -295,9 +312,12 @@ def main() -> None:
         print(f"== {ano}", flush=True)
         df, info = build_year(ano)
         infos[ano] = info
-        for u in tse_urls(ano).values():
-            if (RAW / u.rsplit("/", 1)[-1]).exists():
-                fontes.append({"nome": f"TSE · {u.rsplit('/', 1)[-1]}", "url": u, "baixado_em": hoje})
+        sub = RAW / f"tse_sc_{ano}.zip"
+        baixado = date.fromtimestamp(sub.stat().st_mtime).isoformat() if sub.exists() else hoje
+        for kind, u in tse_urls(ano).items():
+            if ano == 2014 and kind.startswith("contas") and u != CONTAS_2014[0]:
+                continue
+            fontes.append({"nome": f"TSE · {u.rsplit('/', 1)[-1]}", "url": u, "baixado_em": baixado})
         for row in df.itertuples(index=False):
             fl = flags(row)
             all_rows.append(
@@ -335,7 +355,7 @@ def main() -> None:
                     "na_media": sum(not r["f"] and r["v"] > 0 and r["g"] > 0 for r in sub),
                 }
             )
-    fontes.append({"nome": "Banco Central · SGS 433 (IPCA)", "url": ipca_meta["url"], "baixado_em": hoje})
+    fontes.append({"nome": "Banco Central · SGS 433 (IPCA)", "url": ipca_meta["url"], "baixado_em": ipca_meta["baixado_em"]})
 
     meta = {
         "gerado_em": datetime.now(timezone.utc).isoformat(timespec="seconds"),
