@@ -27,7 +27,7 @@ Filtros: `SG_UF = SC`, `CD_CARGO` 6 (Dep. Federal) e 7 (Dep. Estadual), 1º turn
 ## Regras de cálculo
 
 - **Votos:** soma de `QT_VOTOS_NOMINAIS` por `SQ_CANDIDATO`.
-- **Gasto declarado:** soma das despesas contratadas, **excluindo** doações e transferências a outros candidatos ou partidos (para não contar o mesmo dinheiro duas vezes).
+- **Gasto declarado:** soma das despesas contratadas, **excluindo** doações e transferências a outros candidatos ou partidos (para não contar o mesmo dinheiro duas vezes). Em 2014 também ficam fora os lançamentos de “Baixa de Estimáveis”, que não existem nos arquivos de despesas contratadas de 2018 e 2022.
 - **Métrica alternativa:** receitas totais, separando financeiras e estimáveis.
 - **CPV** = gasto declarado ÷ votos nominais.
 - **IPCA:** fator acumulado de novembro do ano da eleição até o último mês disponível. O site alterna entre valores nominais e corrigidos.
@@ -42,30 +42,35 @@ Detalhes e limitações na página **Metodologia** do site.
 pipeline/            Python: download, limpeza, cruzamento e validação
   build.py           gera site/data/candidatos.json e relatorio_validacao.md
   inspect_layouts.py mostra URLs, membros dos zips e colunas de cada ano
+  extrair_sc.js      extrai só os arquivos de SC dos zips do TSE (no navegador)
   common.py          configuração (anos, UF, URLs) e download com cache
   ipca.py            série do IPCA e fatores de correção
+  dados/ipca_433.json cópia da série do IPCA usada na última geração
+  relatorio_validacao.md
   requirements.txt
 site/                Vite + TypeScript
   data/candidatos.json
   src/
 .github/workflows/
   deploy.yml         build e deploy no GitHub Pages a cada push na main
-  pipeline.yml       roda o pipeline no GitHub e publica os dados (manual)
 ```
 
 ## Como rodar o pipeline
 
-Localmente (precisa de acesso a `cdn.tse.jus.br` e `api.bcb.gov.br`; os zips somam alguns GB e ficam em `pipeline/raw/`):
+**Importante:** o CDN do TSE bloqueia acessos de fora do Brasil (inclusive os servidores do GitHub Actions), então o pipeline precisa rodar de uma conexão brasileira.
 
 ```bash
 cd pipeline
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python inspect_layouts.py --download   # opcional: confere colunas de cada ano
-python build.py
+python build.py        # gera ../site/data/candidatos.json e relatorio_validacao.md
 ```
 
-Ou pelo GitHub: aba **Actions → Pipeline de dados (TSE + IPCA) → Run workflow**. O workflow roda o `build.py`, grava `site/data/candidatos.json` e `pipeline/relatorio_validacao.md` na `main` e dispara o deploy.
+O `build.py` baixa os zips oficiais completos (cerca de 2,5 GB nos três anos) para `pipeline/raw/`. Para baixar só o que interessa (~30 MB), use o `pipeline/extrair_sc.js`: com o navegador em `https://cdn.tse.jus.br/estatistica/sead/odsele/`, cole o script no console e rode `await baixarSC(2022)` (e 2014, 2018). Ele lê os zips oficiais por partes (HTTP Range) e monta `tse_sc_{ANO}.zip` só com os arquivos de SC, copiando os bytes e o CRC32 originais. Coloque esses arquivos em `pipeline/raw/` e o `build.py` passa a usá-los.
+
+O IPCA vem da API do Banco Central (SGS 433), com reserva no SIDRA/IBGE e, sem rede, na cópia versionada em `pipeline/dados/ipca_433.json`.
+
+`inspect_layouts.py --download` mostra os membros e as colunas de cada zip, útil quando o TSE muda o layout.
 
 ## Como rodar o site
 
@@ -80,7 +85,7 @@ npm run build    # gera site/dist
 
 1. Espere o TSE publicar os arquivos finais de 2026 (`consulta_cand_2026.zip`, `votacao_candidato_munzona_2026.zip` e `prestacao_de_contas_eleitorais_candidatos_2026.zip`). A prestação de contas final costuma sair semanas depois da eleição; antes disso só há dados parciais.
 2. Em `pipeline/common.py`, acrescente `2026` em `ANOS`.
-3. Rode `python inspect_layouts.py --download` e confira se as colunas mudaram (o parser procura nomes alternativos, mas o TSE às vezes renomeia campos). Ajuste `build.py` se preciso.
+3. Rode `python inspect_layouts.py --download` (ou o `extrair_sc.js` com `baixarSC(2026)`) e confira se as colunas mudaram (o parser procura nomes alternativos, mas o TSE às vezes renomeia campos). Ajuste `build.py` se preciso.
 4. Rode `python build.py` e revise `relatorio_validacao.md` (total de candidatos, eleitos, sem contas, sem votos).
 5. Confira alguns candidatos no [DivulgaCandContas](https://divulgacandcontas.tse.jus.br).
 6. Faça commit do novo `candidatos.json`; o deploy é automático. O site lê os anos de `meta.anos`, então não é preciso mudar o frontend.
