@@ -209,12 +209,12 @@ function renderStatus() {
   }
   const coleta = new Date(live.dados.atualizadoEm);
   const quando = coleta.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  const velho = Date.now() - coleta.getTime() > 3 * 3600_000;
+  const velho = Date.now() - coleta.getTime() > 6 * 3600_000;
   el.innerHTML = `<span class="dot ${velho ? 'dot-wait' : ''}" aria-hidden="true"></span>
-    <span><strong>Ao vivo.</strong> Coleta do TSE de ${quando} (${tempoRelativo(coleta)}). Nova coleta a cada hora; esta página confere a cada minuto${
+    <span><strong>Ao vivo.</strong> Coleta do TSE de ${quando} (${tempoRelativo(coleta)}). A fonte agenda uma coleta por hora (o GitHub pode atrasar esse agendamento); esta página confere a cada minuto${
       live.verificadoEm ? `, última conferência ${tempoRelativo(live.verificadoEm)}` : ''
     }.${live.erro ? ` <span class="warn-text">Falha na última conferência: ${esc(live.erro)}.</span>` : ''}${
-      velho ? ' <span class="warn-text">A última coleta tem mais de 3 horas.</span>' : ''
+      velho ? ' <span class="warn-text">A última coleta tem mais de 6 horas.</span>' : ''
     }</span>
     <button type="button" class="btn btn-sm" id="v-recarregar">Conferir agora</button>`;
   el.querySelector('#v-recarregar')?.addEventListener('click', () => carregarLive());
