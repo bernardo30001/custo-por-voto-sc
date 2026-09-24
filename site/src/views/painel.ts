@@ -212,11 +212,11 @@ function renderCards(root: HTMLElement) {
     </article>`;
 }
 
-function logTick(fmt: (v: number) => string) {
+function logTick(fmt: (v: number) => string, mantissas = [1, 2, 5]) {
   return (value: string | number) => {
     const v = Number(value);
     const m = v / 10 ** Math.floor(Math.log10(v) + 1e-9);
-    return [1, 2, 5].some((k) => Math.abs(m - k) < 1e-6) ? fmt(v) : '';
+    return mantissas.some((k) => Math.abs(m - k) < 1e-6) ? fmt(v) : '';
   };
 }
 
@@ -262,7 +262,7 @@ function renderScatter(root: HTMLElement) {
         x: {
           type: 'logarithmic',
           title: { display: true, text: `${METRICA_NOME[state.metrica]} (R$)`, color: css('--text-2') },
-          ticks: { callback: logTick(fmtBRLShort), autoSkip: true, maxRotation: 0, color: css('--muted') },
+          ticks: { callback: logTick(fmtBRLShort, window.innerWidth < 720 ? [1] : [1, 5]), autoSkip: false, maxRotation: 0, color: css('--muted') },
           grid: { color: css('--grid') },
           border: { color: css('--axis') },
         },
@@ -482,10 +482,10 @@ function renderTable(root: HTMLElement) {
         state.metrica !== 'despesas'
           ? `<span class="muted small">financeiras ${fmtBRL(c.rf * f)} · estimáveis ${fmtBRL(c.re * f)}</span>`
           : c.gt > 0
-            ? `<span class="muted small">+ ${fmtBRL(c.gt * f)} repassados a outros candidatos/partidos (excluídos)</span>`
+            ? `<span class="muted small" title="Doações a outros candidatos ou partidos, excluídas do gasto">repasses excluídos: ${fmtBRL(c.gt * f)}</span>`
             : '';
       return `<tr>
-        <td class="cand"><strong>${esc(c.u)}</strong><span class="muted small">${esc(c.n)} · nº ${esc(c.num)}</span>${badges}</td>
+        <td class="cand"><strong>${esc(c.u)}</strong><span class="muted small"><span class="fullname">${esc(c.n)} · </span>nº ${esc(c.num)}</span>${badges}</td>
         <td>${esc(c.p)}</td>
         <td class="num">${fmtInt(c.v)}</td>
         <td class="num">${fmtBRL(va)}${extra ? `<br>${extra}` : ''}</td>

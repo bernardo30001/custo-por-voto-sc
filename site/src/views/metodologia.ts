@@ -53,12 +53,14 @@ export function renderMetodologia(root: HTMLElement) {
 
     <h2 id="fontes">Fontes</h2>
     <ul>${fontes}</ul>
-    <p>Todos os arquivos vêm do Portal de Dados Abertos do TSE (CDN <code>cdn.tse.jus.br/estatistica/sead/odsele/</code>) e da API SGS do Banco Central. Foram usadas apenas as linhas de Santa Catarina (SG_UF = SC), cargos 6 (Deputado Federal) e 7 (Deputado Estadual), 1º turno.</p>
+    <p>Todos os arquivos vêm do Portal de Dados Abertos do TSE (CDN <code>cdn.tse.jus.br/estatistica/sead/odsele/</code>) e da API SGS do Banco Central. Foram usados apenas os arquivos e linhas de Santa Catarina (SG_UF = SC), cargos 6 (Deputado Federal) e 7 (Deputado Estadual), 1º turno. De cada zip oficial foram copiados só os arquivos de SC, byte a byte, com conferência do CRC32 de cada arquivo.</p>
+    <p>Conferência manual: os totais de receitas e de despesas contratadas de candidatos de 2014, 2018 e 2022 foram comparados com o <a href="https://divulgacandcontas.tse.jus.br" rel="noopener" target="_blank">DivulgaCandContas</a> e bateram (em 2014, somando os repasses e estimáveis que o site exclui).</p>
 
     <h2 id="calculo">Regras de cálculo</h2>
     <ul>
-      <li><strong>Votos:</strong> soma de <code>QT_VOTOS_NOMINAIS</code> em todas as zonas e municípios, por <code>SQ_CANDIDATO</code>. Quando o arquivo indica votos anulados (ou a votação do candidato não foi validada), o candidato recebe a marca “votos anulados” e sai das medianas.</li>
-      <li><strong>Gasto declarado (padrão):</strong> soma das <em>despesas contratadas</em> do candidato, <strong>excluindo</strong> doações e transferências feitas a outros candidatos ou partidos. Sem essa exclusão o mesmo dinheiro seria contado duas vezes (no doador e no recebedor).</li>
+      <li><strong>Votos:</strong> soma de <code>QT_VOTOS_NOMINAIS</code> em todas as zonas e municípios, por <code>SQ_CANDIDATO</code>. Em 2018 e 2022, quando <code>NM_TIPO_DESTINACAO_VOTOS</code> indica votos anulados, o candidato recebe a marca “votos anulados” e sai das medianas. O arquivo de 2014 não tem esse campo; ali os candidatos indeferidos já aparecem com 0 votos.</li>
+      <li><strong>Gasto declarado (padrão):</strong> soma das <em>despesas contratadas</em> do candidato, <strong>excluindo</strong> doações e transferências feitas a outros candidatos ou partidos (“Doações financeiras a outros candidatos/partidos”). Sem essa exclusão o mesmo dinheiro seria contado duas vezes (no doador e no recebedor).</li>
+      <li><strong>2014:</strong> o arquivo de despesas daquele ano também traz lançamentos de “Baixa de Estimáveis” (bens e serviços recebidos como doação e registrados como despesa). Os arquivos de despesas contratadas de 2018 e 2022 só têm gastos financeiros, então esses lançamentos de 2014 ficam fora do gasto para manter a comparação. Os estimáveis continuam na métrica de receitas.</li>
       <li><strong>Métrica alternativa:</strong> receitas totais do candidato, com a separação entre recursos financeiros e estimáveis em dinheiro (bens e serviços doados). Há também a opção “receitas financeiras”, que ignora os estimáveis.</li>
       <li><strong>Custo por voto (CPV):</strong> gasto declarado ÷ votos nominais.</li>
       <li><strong>Correção monetária:</strong> IPCA (SGS ${meta.ipca.serie}), acumulado do mês seguinte à eleição (${esc(meta.ipca.base)}) até ${esc(
@@ -116,8 +118,9 @@ export function renderMetodologia(root: HTMLElement) {
 cd custo-por-voto-sc/pipeline
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python build.py            # baixa, cruza e gera ../site/data/candidatos.json
+python build.py            # cruza os dados e gera ../site/data/candidatos.json
 cd ../site && npm ci && npm run dev</code></pre>
+    <p>O CDN do TSE só aceita conexões do Brasil. Para evitar baixar ~2,5 GB de zips nacionais, o repositório traz <code>pipeline/extrair_sc.js</code>, que copia só os arquivos de SC direto dos zips oficiais pelo navegador.</p>
     <p>O código-fonte, o relatório de validação e as instruções para incluir 2026 estão no <a href="${REPO}" rel="noopener" target="_blank">repositório no GitHub</a>. Os dados completos estão em <a href="${
       import.meta.env.BASE_URL
     }data/candidatos.json">candidatos.json</a>.</p>

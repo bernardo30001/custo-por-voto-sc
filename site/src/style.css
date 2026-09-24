@@ -803,6 +803,12 @@ ul.plain li + li {
     padding: 7px 8px;
   }
   .data-table td.cand {
-    min-width: 150px;
+    min-width: 140px;
+  }
+  .fullname {
+    display: none;
+  }
+  .data-table td.num .small {
+    max-width: 150px;
   }
 }

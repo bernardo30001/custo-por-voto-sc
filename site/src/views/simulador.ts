@@ -275,7 +275,7 @@ function renderResultado(root: HTMLElement) {
 
     <section class="panel">
       <div class="panel-head"><h2>Pelo custo por voto</h2></div>
-      <p>Votos ≈ investimento ÷ (CPV histórico × ${(1 + p).toLocaleString('pt-BR')}). Com os CPVs dos candidatos com gasto parecido
+      <p>Votos ≈ investimento ÷ ${p > 0 ? `(CPV histórico × ${(1 + p).toLocaleString('pt-BR')})` : 'CPV histórico'}. Com os CPVs declarados dos candidatos com gasto parecido
       (1º quartil ${fmtBRL(r.pelaCpv.cpvP25)}, mediana ${fmtBRL(r.pelaCpv.cpvMed)}, 3º quartil ${fmtBRL(r.pelaCpv.cpvP75)}):
       <strong>${faixa(r.pelaCpv.lo, r.pelaCpv.hi)}</strong>, com valor central de ${fmtInt(r.pelaCpv.mid)}.</p>
     </section>
@@ -424,7 +424,7 @@ function renderSimChart(root: HTMLElement, r: SimResult) {
             callback: (v) => {
               const n = Number(v);
               const m = n / 10 ** Math.floor(Math.log10(n) + 1e-9);
-              return [1, 2, 5].some((k) => Math.abs(m - k) < 1e-6) ? fmtBRLShort(n) : '';
+              return Math.abs(m - 1) < 1e-6 ? fmtBRLShort(n) : '';
             },
             maxRotation: 0,
             color: css('--muted'),
