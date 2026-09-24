@@ -38,10 +38,14 @@ jobs:
           restore-keys: tse-raw-v1-
       - name: Inspecionar layouts
         if: inputs.modo == 'inspect'
-        run: python inspect_layouts.py --download
+        run: |
+          set -o pipefail
+          python -u inspect_layouts.py --download 2>&1 | tee ../run.log
       - name: Gerar dados
         if: inputs.modo == 'build'
-        run: python build.py
+        run: |
+          set -o pipefail
+          python -u build.py 2>&1 | tee ../run.log
       - name: Publicar dados na main
         if: inputs.modo == 'build'
         working-directory: .
@@ -59,3 +63,21 @@ jobs:
             git push
           fi
           gh workflow run deploy.yml --ref main
+
+      # Os logs do Actions não são acessíveis de todos os ambientes; por isso o log da
+      # execução também é gravado no branch "logs" do repositório.
+      - name: Publicar log no branch logs
+        if: always()
+        working-directory: .
+        run: |
+          cp run.log /tmp/run.log 2>/dev/null || echo "sem log" > /tmp/run.log
+          cp pipeline/relatorio_validacao.md /tmp/ 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin logs 2>/dev/null && git checkout -B logs FETCH_HEAD || git checkout --orphan logs
+          git rm -rq --cached . 2>/dev/null || true
+          mkdir -p runs
+          cp /tmp/run.log "runs/${{ inputs.modo }}-${{ github.run_id }}.log"
+          cp /tmp/run.log "runs/ultimo-${{ inputs.modo }}.log"
+          git add runs
+          git commit -qm "Log ${{ inputs.modo }} ${{ github.run_id }}" && git push -f origin logs
