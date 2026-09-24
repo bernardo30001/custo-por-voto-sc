@@ -2,7 +2,7 @@ import { CARGO_NOME } from '../data';
 import { dataset } from '../state';
 import { esc, fmtBRL, fmtInt } from '../format';
 
-const REPO = 'https://github.com/__GH_USER__/custo-por-voto-sc';
+const REPO = 'https://github.com/bernardo30001/custo-por-voto-sc';
 
 export function renderMetodologia(root: HTMLElement) {
   const { meta } = dataset();

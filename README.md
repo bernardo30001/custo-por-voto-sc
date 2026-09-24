@@ -2,7 +2,7 @@
 
 Quanto custou cada voto dos candidatos a **Deputado Federal** e **Deputado Estadual** em **Santa Catarina** nas eleições de **2014, 2018 e 2022**, com dados oficiais do TSE e correção pelo IPCA.
 
-**Site:** https://__GH_USER__.github.io/custo-por-voto-sc/
+**Site:** https://bernardo30001.github.io/custo-por-voto-sc/
 
 O site tem três partes:
 
