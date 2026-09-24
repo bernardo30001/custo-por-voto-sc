@@ -12,7 +12,7 @@ import zipfile
 
 import requests
 
-from common import ANOS, RAW, download, tse_urls
+from common import ANOS, HEADERS, RAW, download, tse_urls
 
 CKAN = "https://dadosabertos.tse.jus.br/api/3/action"
 
@@ -20,7 +20,7 @@ CKAN = "https://dadosabertos.tse.jus.br/api/3/action"
 def ckan_resources(ano: int) -> None:
     for q in (f"candidatos {ano}", f"resultados {ano}", f"prestacao de contas {ano}"):
         try:
-            r = requests.get(f"{CKAN}/package_search", params={"q": q, "rows": 5}, timeout=60)
+            r = requests.get(f"{CKAN}/package_search", params={"q": q, "rows": 5}, timeout=60, headers=HEADERS)
             r.raise_for_status()
             for pkg in r.json()["result"]["results"]:
                 print(f"  [ckan] {pkg['name']}")
@@ -51,20 +51,38 @@ def show_zip(path) -> None:
                         break
 
 
+def diagnostico() -> None:
+    """Mostra IP/país do runner e a resposta do CDN, para diagnosticar bloqueios."""
+    try:
+        print("IP do runner:", requests.get("https://ipinfo.io/json", timeout=20).json())
+    except Exception as exc:  # noqa: BLE001
+        print("ipinfo falhou", exc)
+    r = requests.get(CDN_TEST, headers={**HEADERS, "Range": "bytes=0-1023"}, timeout=60)
+    print("CDN:", r.status_code, dict(r.headers))
+    print(r.content[:300])
+
+
+CDN_TEST = "https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_2022.zip"
+
+
 def main() -> None:
+    diagnostico()
     do_download = "--download" in sys.argv
     for ano in ANOS:
         print(f"\n===== {ano} =====")
         ckan_resources(ano)
         for kind, url in tse_urls(ano).items():
             try:
-                h = requests.head(url, timeout=60, allow_redirects=True)
+                h = requests.get(url, timeout=60, headers={**HEADERS, "Range": "bytes=0-1023"}, stream=True)
+                h.close()
                 print(f"  [{kind}] {url} -> {h.status_code} {h.headers.get('Content-Length')}")
             except Exception as exc:  # noqa: BLE001
                 print(f"  [{kind}] {url} -> ERRO {exc}")
                 continue
-            if do_download and h.status_code == 200:
+            if do_download and h.status_code in (200, 206):
                 show_zip(download(url, RAW))
+            elif h.status_code == 403:
+                break
 
 
 if __name__ == "__main__":

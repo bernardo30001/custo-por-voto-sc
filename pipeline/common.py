@@ -38,7 +38,11 @@ def tse_urls(ano: int) -> dict[str, str]:
     return urls
 
 
-HEADERS = {"User-Agent": "custo-por-voto-sc/1.0 (+https://github.com)"}
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36",
+    "Accept": "*/*",
+    "Accept-Language": "pt-BR,pt;q=0.9",
+}
 
 
 def download(url: str, dest_dir: Path, retries: int = 4) -> Path:
@@ -50,7 +54,7 @@ def download(url: str, dest_dir: Path, retries: int = 4) -> Path:
     tmp = dest.with_suffix(dest.suffix + ".part")
     for attempt in range(1, retries + 1):
         try:
-            with requests.get(url, stream=True, timeout=120, headers=HEADERS) as r:
+            with requests.get(url, stream=True, timeout=300, headers=HEADERS) as r:
                 r.raise_for_status()
                 with open(tmp, "wb") as fh:
                     for chunk in r.iter_content(chunk_size=1 << 20):
@@ -66,7 +70,8 @@ def download(url: str, dest_dir: Path, retries: int = 4) -> Path:
 
 def exists(url: str) -> bool:
     try:
-        r = requests.head(url, timeout=60, allow_redirects=True, headers=HEADERS)
-        return r.status_code == 200
+        r = requests.get(url, timeout=60, headers={**HEADERS, "Range": "bytes=0-0"}, stream=True)
+        r.close()
+        return r.status_code in (200, 206)
     except Exception:  # noqa: BLE001
         return False
