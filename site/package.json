@@ -1,0 +1,22 @@
+{
+  "name": "custo-por-voto-sc",
+  "version": "1.0.0",
+  "description": "Custo por voto dos deputados federais e estaduais de SC (2014, 2018, 2022)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1"
+  },
+  "private": true,
+  "type": "module"
+}
