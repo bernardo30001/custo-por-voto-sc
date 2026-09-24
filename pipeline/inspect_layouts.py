@@ -51,22 +51,7 @@ def show_zip(path) -> None:
                         break
 
 
-def diagnostico() -> None:
-    """Mostra IP/país do runner e a resposta do CDN, para diagnosticar bloqueios."""
-    try:
-        print("IP do runner:", requests.get("https://ipinfo.io/json", timeout=20).json())
-    except Exception as exc:  # noqa: BLE001
-        print("ipinfo falhou", exc)
-    r = requests.get(CDN_TEST, headers={**HEADERS, "Range": "bytes=0-1023"}, timeout=60)
-    print("CDN:", r.status_code, dict(r.headers))
-    print(r.content[:300])
-
-
-CDN_TEST = "https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_2022.zip"
-
-
 def main() -> None:
-    diagnostico()
     do_download = "--download" in sys.argv
     for ano in ANOS:
         print(f"\n===== {ano} =====")
