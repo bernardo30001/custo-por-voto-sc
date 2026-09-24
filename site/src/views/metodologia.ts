@@ -45,6 +45,7 @@ export function renderMetodologia(root: HTMLElement) {
       <a href="#/metodologia#fontes">Fontes</a>
       <a href="#/metodologia#calculo">Cálculo</a>
       <a href="#/metodologia#exclusoes">Exclusões</a>
+      <a href="#/metodologia#ao-vivo">2026 ao vivo</a>
       <a href="#/metodologia#cenario">Cenário</a>
       <a href="#/metodologia#limitacoes">Limitações</a>
       <a href="#/metodologia#validacao">Validação</a>
@@ -80,6 +81,16 @@ export function renderMetodologia(root: HTMLElement) {
       <li><strong>Referência 2026:</strong> ${limites ? `<ul>${limites}</ul>` : 'não disponível.'}</li>
     </ul>
 
+    <h2 id="ao-vivo">Campanha 2026 ao vivo</h2>
+    <ul>
+      <li><strong>Fonte:</strong> prestações de contas parciais de 2026 no DivulgaCandContas (eleição 20322002026, SC, cargos 6 e 7), coletadas de hora em hora pelo painel <a href="https://bernardo30001.github.io/ranking-doacoes-novo-sc/" rel="noopener" target="_blank">Ranking de Doações · SC 2026</a>. A aba lê o <code>dados.json</code> e o <code>historico.json</code> publicados por esse painel e confere novas coletas a cada minuto enquanto está aberta.</li>
+      <li><strong>Valores de 2026:</strong> arrecadação líquida (recebido menos devolvido), receitas financeiras e despesas contratadas, conforme a métrica escolhida no topo. São valores nominais de 2026, comparáveis aos históricos corrigidos pelo IPCA.</li>
+      <li><strong>Referência histórica:</strong> para o valor atual de cada candidatura, o site procura candidatos do mesmo cargo que gastaram entre −20% e +20% disso na eleição de referência (ampliando até ±50% se houver menos de 5 casos) e mostra a faixa de votos do 1º ao 3º quartil, a mediana e quantos se elegeram.</li>
+      <li><strong>Limitação principal:</strong> os valores de 2026 são parciais e os históricos são finais. A comparação mostra onde cada campanha está hoje, sem projetar o gasto final nem o resultado.</li>
+      <li><strong>Variação recente:</strong> diferença da receita bruta em relação à última coleta registrada antes do dia atual. Pode incluir retificações, além de doações novas.</li>
+      <li>Candidaturas com renúncia, indeferimento definitivo ou pedido não conhecido ficam de fora por padrão (dá para incluí-las desmarcando “Só candidaturas ativas”).</li>
+    </ul>
+
     <h2 id="exclusoes">Exclusões e marcações</h2>
     <p>Nenhum candidato é removido da base. Ficam fora das médias, medianas, gráficos log e simulador (mas continuam na tabela, com a marca correspondente):</p>
     <ul>
@@ -103,7 +114,7 @@ export function renderMetodologia(root: HTMLElement) {
       <li>As prestações de contas podem ser retificadas depois do download; os valores refletem a data indicada em Fontes.</li>
       <li>Em 2014 o layout da prestação de contas é diferente e as categorias de despesa não são idênticas às de 2018 e 2022; a exclusão de repasses usa o tipo de despesa equivalente.</li>
       <li>Votos em eleição proporcional dependem de partido, federação, base regional, mandato e notoriedade. Correlação entre gasto e votos não é causalidade.</li>
-      <li>Dados de 2026 ainda não fazem parte da base; veja no repositório como atualizar.</li>
+      <li>Os resultados de 2026 (votos) ainda não fazem parte da base histórica; depois da eleição e da prestação de contas final, veja no repositório como incluí-los.</li>
     </ul>
 
     <h2 id="validacao">Validação da base</h2>

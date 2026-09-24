@@ -8,6 +8,7 @@ O site tem três partes:
 
 - **Painel:** filtros por ano, cargo, partido, situação e nome; tabela ordenável; dispersão gasto × votos em escala log; cards com CPV mediano dos eleitos e geral, maior e menor CPV entre eleitos e a votação do último eleito; comparação da mediana corrigida entre os anos; composição das receitas por origem.
 - **Simulador “Quanto rende o investimento?”:** para um cargo, um valor e um ano de referência (ou os três combinados), mostra sempre faixas: votos dos candidatos com gasto parecido (±20%, p25 a p75 e mediana), regressão log-log com intervalo, quantos deles se elegeram e a comparação com o último eleito. Mostra também o limite de gastos de 2026 com a fonte oficial.
+- **2026 ao vivo:** lê as prestações de contas parciais de 2026 publicadas pelo [Ranking de Doações · SC 2026](https://github.com/bernardo30001/ranking-doacoes-novo-sc) (coleta do DivulgaCandContas de hora em hora) e confere novas coletas a cada minuto. Para cada candidatura mostra o valor atual, a variação recente e quantos votos candidatos que gastaram parecido em eleições anteriores tiveram, com quantos deles se elegeram.
 - **Cenário “gasto não declarado”:** controle global de 0% a 100% que multiplica o gasto declarado de **todos** os candidatos pelo mesmo fator. É um exercício de sensibilidade hipotético, sem nenhuma afirmação sobre candidato específico.
 
 Tudo é estático (Vite + TypeScript + Chart.js), sem backend. Os dados ficam em `site/data/candidatos.json`.
