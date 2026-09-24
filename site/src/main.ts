@@ -5,14 +5,16 @@ import { applyChartDefaults, destroyAll } from './charts';
 import { renderPainel } from './views/painel';
 import { renderSimulador } from './views/simulador';
 import { renderMetodologia } from './views/metodologia';
+import { renderAoVivo } from './views/aovivo';
 import { esc, fmtPct } from './format';
 
-type Route = 'painel' | 'simulador' | 'metodologia';
+type Route = 'painel' | 'simulador' | 'aovivo' | 'metodologia';
 const main = document.getElementById('main')!;
 const controls = document.getElementById('global-controls')!;
 
 function currentRoute(): Route {
   const r = location.hash.replace(/^#\/?/, '').split(/[?#]/)[0];
+  if (r === '2026') return 'aovivo';
   return r === 'simulador' || r === 'metodologia' ? r : 'painel';
 }
 
@@ -25,7 +27,7 @@ function renderControls() {
       <span class="ctl-label">Métrica de gasto</span>
       <select id="g-metrica">${metricas}</select>
     </label>
-    <div class="ctl" role="group" aria-labelledby="lbl-valores">
+    <div class="ctl" data-ctl="valores" role="group" aria-labelledby="lbl-valores">
       <span class="ctl-label" id="lbl-valores">Valores</span>
       <div class="seg">
         <button type="button" data-corr="1" aria-pressed="${state.corrigido}">Corrigidos (IPCA)</button>
@@ -78,6 +80,7 @@ function render() {
   syncControls();
   if (route === 'painel') renderPainel(main, changedRoute);
   else if (route === 'simulador') renderSimulador(main, changedRoute);
+  else if (route === 'aovivo') renderAoVivo(main, changedRoute);
   else renderMetodologia(main);
   const anchor = location.hash.split('#')[2];
   if (anchor && anchor !== lastAnchor) document.getElementById(anchor)?.scrollIntoView();
